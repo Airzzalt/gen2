@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: airzz-receipts
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ILOVEPDF_PUBLIC_KEY
+        sync: false
+      - key: ILOVEPDF_SECRET_KEY
+        sync: false
+      - key: CONTACT_EMAIL
+        value: kapeairzz7@gmail.com
+      - key: FREE_MONTHLY_CREDITS
+        value: "3"

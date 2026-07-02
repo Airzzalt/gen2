@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include("partials/head", { brand, title: "Admin" }) %>
+</head>
+<body>
+  <div class="dot-field"></div>
+  <header class="topbar">
+    <%- include("partials/logo", { size: 32 }) %>
+    <div class="row">
+      <a class="btn btn-ghost" href="/">Back to app</a>
+      <button class="btn btn-ghost" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="gallery-head">
+      <h1>Admin panel</h1>
+      <p>Search accounts, grant bonus generates, or flip an account to unlimited.</p>
+    </div>
+
+    <div class="admin-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <strong>Accounts</strong>
+          <span id="userCount"></span>
+        </div>
+        <div class="panel-body">
+          <input class="input" id="userSearch" placeholder="Search by email..." style="max-width:340px;margin-bottom:14px" />
+          <div class="table-wrap">
+            <table class="table" id="usersTable">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Joined</th>
+                  <th>This month</th>
+                  <th>Bonus</th>
+                  <th>Unlimited</th>
+                  <th>Grant more</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><strong>Recent generates</strong><span>Last 200</span></div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table class="table" id="activityTable">
+              <thead><tr><th>Email</th><th>Template</th><th>When</th></tr></thead>
+              <tbody id="activityTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="gateOverlay" class="overlay open">
+    <div class="modal">
+      <div class="modal-head"><strong>Admin login</strong></div>
+      <form id="adminLoginForm">
+        <div class="modal-body">
+          <div class="field"><label>Username</label><input class="input" name="username" autocomplete="username" /></div>
+          <div class="field"><label>Password</label><input class="input" name="password" type="password" autocomplete="current-password" /></div>
+          <div class="error-text" id="adminErrorText"></div>
+        </div>
+        <div class="modal-foot">
+          <a class="btn btn-ghost" href="/">Cancel</a>
+          <button class="btn btn-primary" type="submit">Log in</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/public/js/common.js"></script>
+  <script src="/public/js/admin.js"></script>
+</body>
+</html>

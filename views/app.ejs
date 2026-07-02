@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include("partials/head", { brand, title: "Templates" }) %>
+</head>
+<body>
+  <div class="dot-field"></div>
+  <header class="topbar">
+    <%- include("partials/logo", { size: 32 }) %>
+    <div class="row">
+      <span class="credits-badge" id="creditsBadge"></span>
+      <a class="btn btn-ghost" href="/admin">Admin</a>
+      <button class="btn btn-ghost" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="gallery-head">
+      <h1>Pick a template</h1>
+      <p>Choose a receipt template, fill in the details on the next page, and preview it live before you export.</p>
+    </div>
+
+    <div id="creditsBannerHost"></div>
+
+    <div class="toolbar">
+      <input class="input" id="searchInput" placeholder="Search templates..." />
+      <div class="chips" id="categoryChips">
+        <button class="chip active" data-cat="all">All</button>
+        <button class="chip" data-cat="marketplace">Marketplace</button>
+        <button class="chip" data-cat="fashion">Fashion</button>
+        <button class="chip" data-cat="electronics">Electronics</button>
+        <button class="chip" data-cat="luxury">Luxury</button>
+      </div>
+    </div>
+
+    <div class="grid" id="templateGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none">No templates match your search.</div>
+  </main>
+
+  <script src="/public/js/common.js"></script>
+  <script src="/public/js/gallery.js"></script>
+</body>
+</html>

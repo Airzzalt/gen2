@@ -1,0 +1,22 @@
+{
+  "name": "airzz-receipts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Airzz Receipts - receipt generator with accounts, monthly free credits, admin panel, and PDF export.",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}
