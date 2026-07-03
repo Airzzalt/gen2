@@ -7,7 +7,8 @@
     editedHtml: "",
     schema: [],
     values: {},
-    me: null
+    me: null,
+    sameAsDelivery: false
   };
 
   const DEFAULTS = {
@@ -59,6 +60,7 @@
     billingCountry: "France",
     productQty: "1",
     serialNumber: "1FB-EU-HDB2856A",
+    supportCountryCode: "us",
     trackingNumber: "",
     shipToLine1: "",
     shipToLine2: "",
@@ -75,6 +77,26 @@
     taxAmountDisplay: "$10",
     amountDisplay: "$0"
   };
+
+  // Templates that have BOTH a shipping/delivery address group and a separate
+  // billing address group. Each pair is [shippingFieldKey, billingFieldKey] in
+  // matching line order, so "same as delivery" can copy value-for-value.
+  const ADDRESS_SAME_AS_PAIRS = {
+    "bape.html": [["shippingAddress1", "billingName"], ["shippingAddress2", "billingAddress1"], ["shippingAddress3", "billingAddress2"], ["shippingAddress4", "billingAddress4"]],
+    "balenciaga.html": [["shippingAddress1", "billingName"], ["shippingAddress2", "billingAddress1"], ["shippingAddress3", "billingAddress2"], ["shippingAddress4", "billingAddress3"]],
+    "dior.html": [["shippingAddress1", "billingName"], ["shippingAddress2", "billingAddress1"], ["shippingAddress3", "billingAddress2"], ["shippingAddress4", "billingAddress3"]],
+    "lv.html": [["shippingAddress1", "billingName"], ["shippingAddress2", "billingAddress1"], ["shippingAddress3", "billingAddress2"], ["shippingAddress4", "billingAddress3"]],
+    "moncler.html": [["shippingAddress1", "billingName"], ["shippingAddress2", "billingAddress1"], ["shippingAddress3", "billingAddress2"], ["shippingAddress4", "billingAddress3"]],
+    "grailpoint.html": [["shippingAddress1", "billingName"], ["shippingAddress2", "billingAddress1"]],
+    "apple.html": [["shippingName", "billingName"], ["shippingCity", "billingCity"], ["shippingAddress", "billingSuburb"], ["shippingCountry", "billingCountry"]],
+    "dyson.html": [["wholeName", "billingContactName"], ["deliveryAddress", "billingAddress1"], ["deliveryPostcodeCity", "billingPostcodeCity"], ["deliveryCountry", "billingCountry"]]
+  };
+
+  function currentTemplateFilename() {
+    const raw = state.template?.path || state.template?.name || "";
+    const base = String(raw).split("/").pop().split("\\").pop();
+    return base.toLowerCase();
+  }
 
   function normalizeImageUrl(raw) {
     const v = String(raw || "").trim();
@@ -143,16 +165,45 @@
     return `<label>${field.label}</label><input class="input" data-key="${field.key}" data-type="${field.type}" type="${typeAttr}" value="${safeVal}" />`;
   }
 
+  function syncBillingFromDelivery(pairs) {
+    for (const [shipKey, billKey] of pairs) {
+      state.values[billKey] = state.values[shipKey] ?? "";
+    }
+  }
+
   function buildForm() {
     const form = document.getElementById("editorForm");
     form.innerHTML = "";
+    const pairs = ADDRESS_SAME_AS_PAIRS[currentTemplateFilename()] || null;
+    const billingKeys = pairs ? new Set(pairs.map((p) => p[1])) : new Set();
+    let checkboxInserted = false;
+
     for (const field of state.schema) {
       if (field.type === "hidden") continue;
+
+      if (pairs && billingKeys.has(field.key) && !checkboxInserted) {
+        checkboxInserted = true;
+        const cbWrap = document.createElement("div");
+        cbWrap.className = "field field-checkbox";
+        cbWrap.innerHTML = '<label class="checkbox-label"><input type="checkbox" id="sameAsDeliveryCheckbox"' + (state.sameAsDelivery ? " checked" : "") + ' /><span>Use my delivery address for billing too</span></label>';
+        form.appendChild(cbWrap);
+        const cb = cbWrap.querySelector("input");
+        cb.addEventListener("change", () => {
+          state.sameAsDelivery = cb.checked;
+          if (state.sameAsDelivery) syncBillingFromDelivery(pairs);
+          buildForm();
+          renderPreview();
+        });
+      }
+
       const wrap = document.createElement("div");
       wrap.className = "field";
       wrap.innerHTML = fieldInputHtml(field, state.values[field.key]);
       form.appendChild(wrap);
       const input = wrap.querySelector("input");
+      if (pairs && state.sameAsDelivery && billingKeys.has(field.key)) {
+        input.disabled = true;
+      }
       if (field.type === "file") {
         input.addEventListener("change", onFileChange);
       } else {
@@ -173,6 +224,13 @@
       raw = trimmed && !/^https?:\/\//i.test(trimmed) ? `https://${trimmed}` : trimmed;
     }
     state.values[key] = raw;
+
+    const pairs = ADDRESS_SAME_AS_PAIRS[currentTemplateFilename()];
+    if (pairs && state.sameAsDelivery) {
+      const pair = pairs.find((p) => p[0] === key);
+      if (pair) state.values[pair[1]] = raw;
+    }
+
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(renderPreview, 120);
   }
@@ -185,6 +243,8 @@
     const reader = new FileReader();
     reader.onload = () => {
       state.values[targetKey] = String(reader.result || "");
+      const urlInput = document.querySelector('input[data-key="' + targetKey + '"]');
+      if (urlInput) urlInput.value = "Using uploaded file: " + file.name;
       renderPreview();
     };
     reader.readAsDataURL(file);
@@ -292,6 +352,7 @@
       state.originalHtml = html;
       state.schema = schemaData.fields || [];
       state.values = buildFreshValues(state.schema, state.template);
+      state.sameAsDelivery = false;
 
       document.getElementById("templateTitle").textContent = state.template.name;
       document.title = `${state.template.name} · Airzz Receipts`;
@@ -306,4 +367,14 @@
       Airzz.toast("Couldn't load that template", 4000);
     }
 
-    document.getElementById("resetBtn").addEventListener("click", 
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      state.values = buildFreshValues(state.schema, state.template);
+      state.sameAsDelivery = false;
+      buildForm();
+      renderPreview();
+    });
+    document.getElementById("downloadPdfBtn").addEventListener("click", downloadPdf);
+  }
+
+  init();
+})();
