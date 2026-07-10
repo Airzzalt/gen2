@@ -114,7 +114,7 @@ button,input,select,textarea{font-family:inherit}
   border:1px solid rgba(255,255,255,.12);
   background:rgba(6,8,14,.7);
   color:var(--text);
-  font-size:14px;
+  font-size:16px; /* must stay >=16px or iOS Safari auto-zooms the page on focus */
   transition:border-color .15s ease, box-shadow .15s ease;
 }
 .input:focus{outline:none;border-color:rgba(109,107,250,.7);box-shadow:0 0 0 4px rgba(109,107,250,.16)}
@@ -313,4 +313,15 @@ body.scroll-lock{position:fixed;inset:0;overflow:hidden;width:100%}
 @media (max-width:980px){
   .editor-shell{grid-template-columns:1fr}
   .editor-panel,.preview-panel{max-height:none}
-  #previewHost{
+  #previewHost{height:62vh;min-height:420px}
+  .editor-form-body{max-height:52vh}
+}
+@media (max-width:640px){
+  .topbar{padding:12px 14px}
+  .topbar .row{gap:6px}
+  .btn{padding:10px 14px;font-size:12.5px}
+  .shell{padding:16px 14px 48px}
+  .auth-card{margin-top:6vh}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .table{min-width:560px}
+}
