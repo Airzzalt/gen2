@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include("partials/head", { brand, title: "Editor" }) %>
+</head>
+<body>
+  <header class="topbar">
+    <div class="row">
+      <a class="btn btn-ghost" href="/">&larr; Templates</a>
+      <div class="editor-topbar-title">
+        <strong id="templateTitle">Loading...</strong>
+        <span id="statusText">Fetching template</span>
+      </div>
+    </div>
+    <div class="row">
+      <span class="credits-badge" id="creditsBadge"></span>
+      <a class="btn btn-ghost" href="/profile">Profile</a>
+      <button class="btn" id="resetBtn" disabled>Reset</button>
+      <button class="btn btn-primary" id="downloadPdfBtn" disabled>Download PDF</button>
+    </div>
+  </header>
+
+  <main class="editor-shell">
+    <section class="editor-panel">
+      <div class="editor-panel-head">
+        <strong>Receipt details</strong>
+        <span>Edits update the preview live</span>
+      </div>
+      <form class="editor-form-body" id="editorForm"></form>
+      <div class="editor-panel-foot">
+        <span class="note" id="creditsNote"></span>
+      </div>
+    </section>
+
+    <section class="preview-panel">
+      <div class="preview-panel-head">
+        <strong>Live preview</strong>
+        <span>768px width &middot; A4 portrait</span>
+      </div>
+      <iframe id="previewHost" title="Receipt preview"></iframe>
+    </section>
+  </main>
+
+  <script src="/public/js/common.js"></script>
+  <s
