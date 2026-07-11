@@ -8,7 +8,8 @@
     schema: [],
     values: {},
     me: null,
-    sameAsDelivery: false
+    sameAsDelivery: false,
+    profileLinked: new Set()
   };
 
   const DEFAULTS = {
@@ -92,10 +93,86 @@
     "dyson.html": [["wholeName", "billingContactName"], ["deliveryAddress", "billingAddress1"], ["deliveryPostcodeCity", "billingPostcodeCity"], ["deliveryCountry", "billingCountry"]]
   };
 
+  // Maps a field's key to a key in the user's saved profile (see /profile).
+  // "*" applies to any template; per-template entries are for address lines,
+  // which are named differently everywhere.
+  const PROFILE_FIELD_MAP = {
+    "*": { firstName: "firstName", wholeName: "wholeName", billingContactName: "wholeName" },
+    "sephora.html": { shipToLine1: "address1", shipToLine2: "address2", shipToLine3: "address3", shipToLine4: "address4" },
+    "amazon.html": { shippingAddress1: "address1", shippingAddress2: "address2" },
+    "ebay.html": { shippingAddress0: "address1", shippingAddress1: "address2", shippingAddress2: "address3", shippingAddress3: "address4" },
+    "farfetch.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3" },
+    "bape.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "canada_goose.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "balenciaga.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "dior.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "goat.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "grailed.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3" },
+    "grailpoint.html": { shippingAddress1: "address1", shippingAddress2: "address2" },
+    "lv.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "moncler.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "nike.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3" },
+    "prada.html": { shippingAddress1: "address1", shippingAddress2: "address2", shippingAddress3: "address3", shippingAddress4: "address4" },
+    "apple.html": { shippingName: "address1", shippingAddress: "address2", shippingCity: "address3", shippingCountry: "address4" },
+    "dyson.html": { deliveryAddress: "address2", deliveryPostcodeCity: "address3", deliveryCountry: "address4" }
+  };
+
+  // Per-template random-value formats for the "Generate" button next to
+  // order/tracking number fields. Falls back to a generic format otherwise.
+  const GENERATE_CONFIG = {
+    "sephora.html": { orderNumber: { prefix: "SO", randomLen: 9 }, trackingNumber: { prefix: "3A", randomLen: 9 } }
+  };
+
   function currentTemplateFilename() {
     const raw = state.template?.path || state.template?.name || "";
     const base = String(raw).split("/").pop().split("\\").pop();
     return base.toLowerCase();
+  }
+
+  function getProfileMapping(field) {
+    const tpl = currentTemplateFilename();
+    const perTemplate = PROFILE_FIELD_MAP[tpl] || {};
+    if (perTemplate[field.key]) return perTemplate[field.key];
+    const universal = PROFILE_FIELD_MAP["*"];
+    if (universal[field.key]) return universal[field.key];
+    return null;
+  }
+
+  function randomAlnum(n) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
+    let out = "";
+    for (let i = 0; i < n; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+
+  function generateValueFor(field) {
+    const tpl = currentTemplateFilename();
+    const cfg = (GENERATE_CONFIG[tpl] || {})[field.key];
+    if (cfg) return cfg.prefix + randomAlnum(cfg.randomLen);
+    if (tpl === "apple.html" && field.key === "orderNumber") return generateAppleOrderNumber();
+    if (field.key === "orderNumber") {
+      let digits = "";
+      for (let i = 0; i < 10; i++) digits += String(Math.floor(Math.random() * 10));
+      return digits;
+    }
+    if (field.key === "trackingNumber") return randomAlnum(12);
+    return null;
+  }
+
+  function isDateField(field) {
+    return field.type === "text" && /date/i.test(field.key);
+  }
+
+  function ddmmyyyyToISO(s) {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s || "").trim());
+    if (!m) return "";
+    return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  }
+
+  function isoToDDMMYYYY(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "").trim());
+    if (!m) return "";
+    return `${m[3]}/${m[2]}/${m[1]}`;
   }
 
   function normalizeImageUrl(raw) {
@@ -160,6 +237,10 @@
     if (field.type === "file") {
       return `<label>${field.label}</label><input class="input" data-key="${field.key}" data-type="file" type="file" accept="image/*" />`;
     }
+    if (isDateField(field)) {
+      const safeVal = ddmmyyyyToISO(value);
+      return `<label>${field.label}</label><input class="input" data-key="${field.key}" data-type="date" type="date" value="${safeVal}" />`;
+    }
     const typeAttr = field.type === "url" ? "url" : field.type === "email" ? "email" : "text";
     const safeVal = String(value ?? "").replace(/"/g, "&quot;");
     return `<label>${field.label}</label><input class="input" data-key="${field.key}" data-type="${field.type}" type="${typeAttr}" value="${safeVal}" />`;
@@ -177,6 +258,7 @@
     const pairs = ADDRESS_SAME_AS_PAIRS[currentTemplateFilename()] || null;
     const billingKeys = pairs ? new Set(pairs.map((p) => p[1])) : new Set();
     let checkboxInserted = false;
+    const profile = state.me?.profile || null;
 
     for (const field of state.schema) {
       if (field.type === "hidden") continue;
@@ -204,8 +286,67 @@
       if (pairs && state.sameAsDelivery && billingKeys.has(field.key)) {
         input.disabled = true;
       }
+
+      // "Generate" button for order number / tracking number style fields.
+      if (field.type !== "file" && generateValueFor(field) !== null) {
+        const genBtn = document.createElement("button");
+        genBtn.type = "button";
+        genBtn.className = "field-gen-btn";
+        genBtn.textContent = "Generate";
+        genBtn.title = "Auto-generate a realistic value";
+        genBtn.addEventListener("click", () => {
+          const val = generateValueFor(field);
+          state.values[field.key] = val;
+          input.value = val;
+          renderPreview();
+        });
+        wrap.appendChild(genBtn);
+        wrap.classList.add("field-has-gen");
+      }
+
+      // "Use my profile" tick for name/address fields — greyed out and
+      // explained if the user hasn't saved a profile yet.
+      const profileKey = field.type !== "file" ? getProfileMapping(field) : null;
+      if (profileKey) {
+        const hasProfile = !!profile?.isSet;
+        const isLinked = state.profileLinked.has(field.key);
+        const tickWrap = document.createElement("label");
+        tickWrap.className = "profile-tick" + (hasProfile ? "" : " profile-tick-off");
+        tickWrap.title = hasProfile
+          ? "Fill this from your saved profile"
+          : "Set your address in Profile to use this";
+        tickWrap.innerHTML = `<input type="checkbox" ${isLinked ? "checked" : ""} ${hasProfile ? "" : "disabled"} /><span>Profile</span>`;
+        wrap.appendChild(tickWrap);
+        wrap.classList.add("field-has-profile-tick");
+        const tickInput = tickWrap.querySelector("input");
+        tickInput.addEventListener("change", () => {
+          if (tickInput.checked) {
+            state.profileLinked.add(field.key);
+            const val = profile?.[profileKey] || "";
+            state.values[field.key] = val;
+            input.value = val;
+            input.disabled = true;
+          } else {
+            state.profileLinked.delete(field.key);
+            input.disabled = false;
+          }
+          renderPreview();
+        });
+        if (isLinked) input.disabled = true;
+        if (!hasProfile) {
+          const hint = document.createElement("a");
+          hint.href = "/profile";
+          hint.className = "profile-tick-hint";
+          hint.textContent = "Set up in Profile →";
+          wrap.appendChild(hint);
+        }
+      }
+
       if (field.type === "file") {
         input.addEventListener("change", onFileChange);
+      } else if (isDateField(field)) {
+        input.addEventListener("input", onFieldInput);
+        input.addEventListener("change", onFieldInput);
       } else {
         input.addEventListener("input", onFieldInput);
       }
@@ -222,6 +363,8 @@
     else if (type === "url") {
       const trimmed = raw.trim();
       raw = trimmed && !/^https?:\/\//i.test(trimmed) ? `https://${trimmed}` : trimmed;
+    } else if (type === "date") {
+      raw = isoToDDMMYYYY(raw);
     }
     state.values[key] = raw;
 
@@ -353,6 +496,7 @@
       state.schema = schemaData.fields || [];
       state.values = buildFreshValues(state.schema, state.template);
       state.sameAsDelivery = false;
+      state.profileLinked = new Set();
 
       document.getElementById("templateTitle").textContent = state.template.name;
       document.title = `${state.template.name} · Airzz Receipts`;
@@ -370,6 +514,7 @@
     document.getElementById("resetBtn").addEventListener("click", () => {
       state.values = buildFreshValues(state.schema, state.template);
       state.sameAsDelivery = false;
+      state.profileLinked = new Set();
       buildForm();
       renderPreview();
     });
