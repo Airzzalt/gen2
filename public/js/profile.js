@@ -16,7 +16,10 @@
   async function load() {
     try {
       const me = await Airzz.api("/api/auth/me");
-      if (me.role !== "user") { window.location.href = "/"; return; }
+      if (me.role !== "user") {
+        errorText.textContent = "Profiles are only available on regular accounts, not the admin login.";
+        return;
+      }
       const p = me.profile || {};
       form.firstName.value = p.firstName || "";
       form.wholeName.value = p.wholeName || "";
@@ -25,9 +28,18 @@
       form.address3.value = p.address3 || "";
       form.address4.value = p.address4 || "";
       renderBadge(!!p.isSet);
-    } catch {
-      Airzz.clearToken();
-      window.location.href = "/login";
+    } catch (err) {
+      // Only a real "not logged in" response should bounce to /login — any
+      // other failure (server hiccup, network blip) should just show an
+      // error and leave the user on the page instead of silently logging
+      // them out.
+      const status = err?.status;
+      if (status === 401 || /unauthorized|invalid session/i.test(err?.error || "")) {
+        Airzz.clearToken();
+        window.location.href = "/login";
+        return;
+      }
+      errorText.textContent = (err && err.error) ? `Couldn't load your profile: ${err.error}` : "Couldn't load your profile. Try refreshing the page.";
     }
   }
 
