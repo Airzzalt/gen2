@@ -36,6 +36,16 @@ async function initSchema() {
     );
   `);
 
+  // Saved profile (name + address) so users don't have to retype it on every
+  // receipt. Added with ALTER TABLE so it's safe to run against a database
+  // that already has the users table from before this feature existed.
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_first_name TEXT NOT NULL DEFAULT '';`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_whole_name TEXT NOT NULL DEFAULT '';`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_address1 TEXT NOT NULL DEFAULT '';`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_address2 TEXT NOT NULL DEFAULT '';`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_address3 TEXT NOT NULL DEFAULT '';`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_address4 TEXT NOT NULL DEFAULT '';`);
+
   await query(`
     CREATE TABLE IF NOT EXISTS sessions (
       id SERIAL PRIMARY KEY,
