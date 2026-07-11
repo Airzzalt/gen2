@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include("partials/head", { brand, title: "Profile" }) %>
+</head>
+<body>
+  <div class="dot-field"></div>
+  <header class="topbar">
+    <%- include("partials/logo", { size: 32 }) %>
+    <div class="row">
+      <a class="btn btn-ghost" href="/">Back to app</a>
+      <button class="btn btn-ghost" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="gallery-head">
+      <h1>Your profile</h1>
+      <p>Save your name and address once, then use the "Use my profile" tick box on any receipt's name and address fields instead of retyping them every time.</p>
+    </div>
+
+    <section class="panel" style="max-width:560px">
+      <div class="panel-head"><strong>Saved details</strong><span id="profileStatusBadge"></span></div>
+      <div class="panel-body">
+        <form id="profileForm">
+          <div class="field" style="margin-bottom:14px">
+            <label>First name</label>
+            <input class="input" name="firstName" placeholder="e.g. Ayaan" autocomplete="given-name" />
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Full name</label>
+            <input class="input" name="wholeName" placeholder="e.g. Ayaan Kapea" autocomplete="name" />
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Address line 1 (name on parcel)</label>
+            <input class="input" name="address1" placeholder="e.g. Ayaan Kapea" autocomplete="name" />
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Address line 2 (street)</label>
+            <input class="input" name="address2" placeholder="e.g. 12 Example Street" autocomplete="address-line1" />
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Address line 3 (suburb / state / postcode)</label>
+            <input class="input" name="address3" placeholder="e.g. Sydney NSW 2000" autocomplete="address-level2" />
+          </div>
+          <div class="field" style="margin-bottom:18px">
+            <label>Address line 4 (country)</label>
+            <input class="input" name="address4" placeholder="e.g. Australia" autocomplete="country-name" />
+          </div>
+          <div class="error-text" id="profileErrorText"></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btn-primary" type="submit" id="profileSaveBtn">Save profile</button>
+            <span class="note" id="profileSavedNote"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="/public/js/common.js"></script>
+  <script src="/public/js/profile.js"></script>
+</body>
+</html>
