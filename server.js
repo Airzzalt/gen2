@@ -172,6 +172,7 @@ app.get("/", (_req, res) => res.render("app", { brand: BRAND, freeMonthlyCredits
 app.get("/login", (_req, res) => res.render("login", { brand: BRAND }));
 app.get("/signup", (_req, res) => res.render("signup", { brand: BRAND, freeMonthlyCredits: FREE_MONTHLY_CREDITS }));
 app.get("/editor", (_req, res) => res.render("editor", { brand: BRAND }));
+app.get("/profile", (_req, res) => res.render("profile", { brand: BRAND }));
 app.get("/admin", (_req, res) => res.render("admin", { brand: BRAND }));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
@@ -266,18 +267,52 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(aa, bb);
 }
 
+function profileSummary(user) {
+  const profile = {
+    firstName: user.profile_first_name || "",
+    wholeName: user.profile_whole_name || "",
+    address1: user.profile_address1 || "",
+    address2: user.profile_address2 || "",
+    address3: user.profile_address3 || "",
+    address4: user.profile_address4 || ""
+  };
+  profile.isSet = Object.values(profile).some((v) => String(v || "").trim().length > 0);
+  return profile;
+}
+
 app.get("/api/auth/me", requireAuth, async (req, res) => {
   if (req.session.role === "admin") return res.json({ role: "admin" });
   const r = await query("SELECT * FROM users WHERE id = $1", [req.session.user_id]);
   const user = r.rows[0];
   if (!user) return res.status(401).json({ error: "Account not found" });
   await ensureRollover(user);
-  res.json({ role: "user", email: user.email, credits: creditsSummary(user), contactEmail: CONTACT_EMAIL });
+  res.json({ role: "user", email: user.email, credits: creditsSummary(user), contactEmail: CONTACT_EMAIL, profile: profileSummary(user) });
 });
 
 app.post("/api/auth/logout", requireAuth, async (req, res) => {
   await query("DELETE FROM sessions WHERE token = $1", [req.headers.authorization.slice(7)]);
   res.json({ ok: true });
+});
+
+// ---------- profile (saved name + address) ----------
+app.get("/api/profile", requireUser, (req, res) => {
+  res.json({ profile: profileSummary(req.user) });
+});
+
+app.post("/api/profile", requireUser, async (req, res) => {
+  const clean = (v, max) => String(v || "").trim().slice(0, max);
+  const firstName = clean(req.body?.firstName, 200);
+  const wholeName = clean(req.body?.wholeName, 200);
+  const address1 = clean(req.body?.address1, 300);
+  const address2 = clean(req.body?.address2, 300);
+  const address3 = clean(req.body?.address3, 300);
+  const address4 = clean(req.body?.address4, 300);
+  const r = await query(
+    `UPDATE users SET profile_first_name=$2, profile_whole_name=$3, profile_address1=$4, profile_address2=$5, profile_address3=$6, profile_address4=$7
+     WHERE id=$1 RETURNING *`,
+    [req.user.id, firstName, wholeName, address1, address2, address3, address4]
+  );
+  res.json({ ok: true, profile: profileSummary(r.rows[0]) });
 });
 
 // ---------- templates ----------
