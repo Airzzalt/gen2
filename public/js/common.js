@@ -13,7 +13,11 @@ window.Airzz = (function () {
     const res = await fetch(url, Object.assign({}, options, { headers }));
     const ct = res.headers.get("content-type") || "";
     const data = ct.includes("application/json") ? await res.json() : await res.text();
-    if (!res.ok) throw (typeof data === "object" ? data : { error: String(data) });
+    if (!res.ok) {
+      const err = typeof data === "object" ? data : { error: String(data) };
+      err.status = res.status;
+      throw err;
+    }
     return data;
   }
 
