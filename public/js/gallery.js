@@ -78,19 +78,10 @@
   }
 
   async function init() {
-    try {
-      state.me = await Airzz.api("/api/auth/me");
-    } catch {
-      Airzz.clearToken();
-      window.location.href = "/login";
-      return;
-    }
-    renderCredits();
-
-    const data = await Airzz.api("/api/templates");
-    state.templates = data.templates || [];
-    applyFilters();
-
+    // Wire up logout and search/category controls FIRST, before any API call
+    // that could fail — a failed template fetch used to leave the whole page
+    // dead (including the logout button) with zero feedback to the user.
+    document.getElementById("logoutBtn").addEventListener("click", Airzz.logout);
     document.getElementById("searchInput").addEventListener("input", applyFilters);
     document.querySelectorAll("#categoryChips .chip").forEach((chip) => {
       chip.addEventListener("click", () => {
@@ -100,7 +91,33 @@
         applyFilters();
       });
     });
-    document.getElementById("logoutBtn").addEventListener("click", Airzz.logout);
+
+    try {
+      state.me = await Airzz.api("/api/auth/me");
+    } catch (err) {
+      if (err?.status === 401 || /unauthorized|invalid session/i.test(err?.error || "")) {
+        Airzz.clearToken();
+        window.location.href = "/login";
+        return;
+      }
+      Airzz.toast(err?.error || "Couldn't load your account. Try refreshing.", 4200);
+    }
+    if (state.me) renderCredits();
+
+    try {
+      const data = await Airzz.api("/api/templates");
+      state.templates = data.templates || [];
+      applyFilters();
+    } catch (err) {
+      const grid = document.getElementById("templateGrid");
+      const empty = document.getElementById("emptyState");
+      grid.innerHTML = "";
+      empty.style.display = "block";
+      empty.textContent = err?.error
+        ? `Couldn't load templates: ${err.error}. Try refreshing the page.`
+        : "Couldn't load templates. Try refreshing the page.";
+      Airzz.toast("Couldn't load templates", 4200);
+    }
   }
 
   init();
